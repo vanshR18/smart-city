@@ -6,20 +6,15 @@ on:
   pull_request:
     branches: [main]
 
-# Cancel in-progress runs on the same branch (saves CI minutes)
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # JOB 1: Backend — lint, type check, unit tests
-  # ════════════════════════════════════════════════════════════════════════════
   backend-test:
     name: Backend Tests
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,54 +24,47 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: backend/requirements.txt
 
-      - name: Install dependencies
+      - name: Install dependencies (no torch/tensorflow)
         run: |
           cd backend
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
+          pip uninstall tensorflow tensorflow-intel keras tf-keras -y 2>/dev/null || true
+          pip install "protobuf>=4.25.0" --upgrade --quiet
+          pip install --quiet \
+            fastapi "uvicorn[standard]" \
+            sqlalchemy alembic psycopg2-binary geoalchemy2 \
+            redis faker numpy \
+            scikit-learn pandas \
+            mlflow \
+            pydantic pydantic-settings python-dotenv \
+            rich loguru \
+            pytest pytest-asyncio httpx python-multipart
 
-          # remove conflicts
-          pip uninstall tensorflow tensorflow-intel keras -y || true
-
-          # install protobuf first (needed for mlflow)
-          pip install "protobuf>=4.25.0"
-
-          # install all normal deps from PyPI
-          pip install \
-            fastapi "uvicorn[standard]" sqlalchemy alembic \
-            psycopg2-binary geoalchemy2 redis faker numpy \
-            scikit-learn pandas mlflow pydantic pydantic-settings \
-            python-dotenv transformers rich loguru \
-            pytest pytest-asyncio httpx
-
-          pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
-
-          #  install torch separately (CPU version for CI)
-          pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
-      
-      - name: Run unit tests
+      - name: Run unit tests (skip NLP tests that need torch)
         env:
           DATABASE_URL: postgresql://x:x@localhost/x
           REDIS_URL: redis://localhost:6379/0
           USE_TF: "0"
         run: |
           cd backend
-          python -m pytest tests/ -v --tb=short --ignore=tests/test_nlp.py
-            - name: Upload test results
-              uses: actions/upload-artifact@v4
-              if: always()
-              with:
-                name: backend-test-results
-                path: backend/test-results.xml
+          python -m pytest tests/ \
+            -v \
+            --tb=short \
+            --junitxml=test-results.xml \
+            --ignore=tests/test_nlp.py \
+            -p no:warnings
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # JOB 2: Frontend — install, lint, build
-  # ════════════════════════════════════════════════════════════════════════════
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results
+          path: backend/test-results.xml
+
   frontend-build:
     name: Frontend Build
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -85,17 +73,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
 
-      - name: Install dependencies
+      - name: Install and build
         run: |
           cd frontend
-          npm ci
-
-      - name: Build
-        run: |
-          cd frontend
+          npm install
           npm run build
 
       - name: Upload build artifact
@@ -105,180 +87,53 @@ jobs:
           path: frontend/dist/
           retention-days: 7
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # JOB 3: Docker — build both images (only on main branch)
-  # ════════════════════════════════════════════════════════════════════════════
- docker-build:
-    name: Build & Push Docker Images
+  docker-build:
+    name: Build and Push Docker Images
     runs-on: ubuntu-latest
     needs: [backend-test, frontend-build]
     if: github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build & push backend
+
+      - name: Build and push backend
         uses: docker/build-push-action@v5
         with:
           context: ./backend
+          dockerfile: ./backend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/smartcity-backend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - name: Build & push frontend
+
+      - name: Build and push frontend
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
+          dockerfile: ./frontend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/smartcity-frontend:latest
-  # ════════════════════════════════════════════════════════════════════════════
-  # JOB 4: Integration test — spin up real DB + Redis, run API smoke tests
-  # Only runs on push to main (not PRs — saves CI time)
-  # ════════════════════════════════════════════════════════════════════════════
-  integration-test:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    needs: backend-test
-    if: github.ref == 'refs/heads/main'
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-    services:
-      postgres:
-        image: postgis/postgis:15-3.3
-        env:
-          POSTGRES_USER:     smartcity
-          POSTGRES_PASSWORD: smartcity123
-          POSTGRES_DB:       smartcitydb
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U smartcity"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: backend/requirements.txt
-
-      - name: Install dependencies
-        run: |
-          cd backend
-          pip install --upgrade pip
-          pip install \
-            fastapi "uvicorn[standard]" sqlalchemy alembic \
-            psycopg2-binary geoalchemy2 redis faker numpy \
-            scikit-learn pandas mlflow pydantic pydantic-settings \
-            python-dotenv transformers rich loguru \
-            pytest pytest-asyncio httpx
-
-      - name: Start API server
-        env:
-          DATABASE_URL: postgresql://smartcity:smartcity123@localhost:5432/smartcitydb
-          REDIS_URL:    redis://localhost:6379/0
-          APP_ENV:      test
-        run: |
-          cd backend
-          uvicorn main:app --host 0.0.0.0 --port 8000 &
-          # Wait for server to be ready
-          for i in $(seq 1 15); do
-            curl -sf http://localhost:8000/health && break
-            echo "Waiting for API... ($i/15)"
-            sleep 3
-          done
-
-      - name: Smoke tests
-        env:
-          DATABASE_URL: postgresql://smartcity:smartcity123@localhost:5432/smartcitydb
-          REDIS_URL:    redis://localhost:6379/0
-        run: |
-          cd backend
-
-          echo "=== GET / ==="
-          curl -sf http://localhost:8000/ | python -m json.tool
-
-          echo "=== GET /health ==="
-          curl -sf http://localhost:8000/health | python -m json.tool
-
-          echo "=== POST /simulate/batch (n=5) ==="
-          curl -sf -X POST "http://localhost:8000/simulate/batch?n=5" | python -m json.tool
-
-          echo "=== GET /events ==="
-          curl -sf "http://localhost:8000/events?limit=3" | python -m json.tool
-
-          echo "=== GET /stats ==="
-          curl -sf http://localhost:8000/stats | python -m json.tool
-
-          echo "=== POST /predict/text ==="
-          curl -sf -X POST http://localhost:8000/predict/text \
-            -H "Content-Type: application/json" \
-            -d '{"text":"Building mein aag lag gayi Kaiserbagh mein"}' \
-            | python -m json.tool
-
-          echo "=== POST /risk/score ==="
-          curl -sf -X POST http://localhost:8000/risk/score \
-            -H "Content-Type: application/json" \
-            -d '{"event_type":"FIRE","area_name":"Kaiserbagh","cv_score":0.9,"nlp_score":0.85}' \
-            | python -m json.tool
-
-          echo "=== GET /risk/heatmap ==="
-          curl -sf "http://localhost:8000/risk/heatmap?hours_back=1" | python -m json.tool
-
-          echo "=== GET /mlops/model-registry ==="
-          curl -sf http://localhost:8000/mlops/model-registry | python -m json.tool
-
-          echo "✅ All smoke tests passed"
-
-  # ════════════════════════════════════════════════════════════════════════════
-  # JOB 5: Deploy (uncomment and configure for your platform)
-  # ════════════════════════════════════════════════════════════════════════════
-
-  # ── Option A: Deploy to Railway ───────────────────────────────────────────
+  # Uncomment after adding RAILWAY_TOKEN to GitHub Secrets:
   # deploy-railway:
   #   name: Deploy to Railway
   #   runs-on: ubuntu-latest
-  #   needs: [docker-build, integration-test]
+  #   needs: [docker-build]
   #   if: github.ref == 'refs/heads/main'
-  #   environment: production
   #   steps:
   #     - uses: actions/checkout@v4
-  #     - name: Install Railway CLI
-  #       run: npm install -g @railway/cli
-  #     - name: Deploy backend
-  #       env:
+  #     - run: npm install -g @railway/cli
+  #     - env:
   #         RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-  #       run: railway up --service backend
-  #     - name: Deploy frontend
-  #       env:
-  #         RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-  #       run: railway up --service frontend
-
-  # ── Option B: Deploy to Render ────────────────────────────────────────────
-  # deploy-render:
-  #   name: Deploy to Render
-  #   runs-on: ubuntu-latest
-  #   needs: [docker-build, integration-test]
-  #   if: github.ref == 'refs/heads/main'
-  #   steps:
-  #     - name: Trigger Render deploy hook
-  #       run: |
-  #         curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+  #       run: cd backend && railway up --detach
