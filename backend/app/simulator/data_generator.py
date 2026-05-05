@@ -309,17 +309,66 @@ def generate_one_event(db, redis_client=None, occurred_at=None) -> dict:
         "desc":       description,
     }
 
+def generate_single_event(force_event_type=None):
+    area = random.choice(LUCKNOW_AREAS)
+
+    lat = area["lat"] + np.random.normal(0, 0.002)
+    lon = area["lon"] + np.random.normal(0, 0.002)
+
+    incident_type = force_event_type or random.choice(list(IncidentType))
+
+    description = random.choice(DESCRIPTIONS.get(incident_type, ["Unknown event"]))
+
+    occurred_at = datetime.utcnow()
+    hour = occurred_at.hour
+
+    scores = _engine.compute(incident_type, area, hour, description)
+
+    return {
+        "id": fake.uuid4(),
+        "event_type": incident_type.value,
+        "latitude": float(round(lat, 6)),
+        "longitude": float(round(lon, 6)),
+        "area_name": area["name"],
+        "city": "Lucknow",
+        "occurred_at": occurred_at.isoformat(),
+        "risk_score": scores["risk_score"],
+        "risk_level": scores["risk_level"].value,
+        "explanation": {
+            "dominant_signal": max(
+                ["cv", "nlp", "location", "time"],
+                key=lambda k: scores[f"{k}_score"]
+            ),
+            "formula": {
+                "cv_score": scores["cv_score"],
+                "nlp_score": scores["nlp_score"],
+                "location_score": scores["location_score"],
+                "time_score": scores["time_score"],
+                "final_score": scores["risk_score"],
+            }
+        },
+        "raw_input": {
+            "description": description
+        }
+    }
 
 # ── Batch generator ───────────────────────────────────────────────────────────
 
 def generate_batch(n=20, db=None, redis_client=None) -> list[dict]:
+    # Case 1: No DB → used in tests
+    if db is None:
+        return [generate_single_event() for _ in range(n)]
+
+    # Case 2: With DB → production mode
     results = []
     for _ in range(n):
         try:
-            results.append(generate_one_event(db, redis_client))
+            event = generate_one_event(db, redis_client)
+            results.append(event)
         except Exception as e:
             logger.error(f"Event generation failed: {e}")
             db.rollback()
+
     return results
 
 
