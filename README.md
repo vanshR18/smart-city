@@ -3,7 +3,7 @@
 > End-to-end AI + Full Stack + MLOps project for real-time emergency detection,
 > risk scoring, and live alerting across Lucknow city.
 
-![CI](https://github.com/YOUR_USERNAME/smart-city/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/vanshR18/smart-city/actions/workflows/ci.yml/badge.svg)
 
 ---
 
