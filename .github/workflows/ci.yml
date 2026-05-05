@@ -35,15 +35,18 @@ jobs:
         run: |
           cd backend
           pip install --upgrade pip
-          # Install a lighter subset for CI (skip torch/ultralytics — too slow)
+          pip uninstall tensorflow tensorflow-intel keras -y 2>/dev/null || true
+          pip install "protobuf>=4.25.0" --upgrade
           pip install \
-            fastapi uvicorn sqlalchemy alembic psycopg2-binary geoalchemy2 \
-            redis faker numpy scikit-learn pandas \
-            mlflow pydantic pydantic-settings python-dotenv \
-            transformers \
+            fastapi "uvicorn[standard]" sqlalchemy alembic \
+            psycopg2-binary geoalchemy2 redis faker numpy \
+            scikit-learn pandas mlflow \
+            pydantic pydantic-settings python-dotenv \
+            transformers==4.41.1 \
+            torch --index-url https://download.pytorch.org/whl/cpu \
             rich loguru \
-            pytest pytest-asyncio httpx
-
+            pytest pytest-asyncio httpx python-multipart
+            
       - name: Run unit tests
         env:
           # Fake DB URL — unit tests don't touch the real DB
