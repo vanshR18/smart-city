@@ -1,0 +1,61 @@
+version: "3.9"
+
+# =============================================================================
+# docker-compose.override.yml — Development overrides
+# =============================================================================
+# Docker Compose automatically merges this with docker-compose.yml
+# when you run `docker-compose up` locally.
+#
+# In production (CI/CD, Railway, Render):
+#   docker-compose -f docker-compose.yml up    ← skips this file
+#
+# What this adds for local dev:
+#   - Backend hot-reload (uvicorn --reload)
+#   - Source code mounted so edits apply instantly (no rebuild)
+#   - Verbose SQL logging
+#   - pgAdmin for visual DB browsing (port 5050)
+
+services:
+
+  backend:
+    # Override the CMD to enable hot-reload
+    command: >
+      uvicorn main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+      --log-level debug
+    # Mount source code so edits are reflected without rebuilding
+    volumes:
+      - ./backend:/app
+      - ./backend/mlruns:/app/mlruns
+      # Exclude venv and cache dirs from the mount
+      - /app/venv
+      - /app/__pycache__
+    environment:
+      APP_ENV:       development
+      DATABASE_URL:  postgresql://smartcity:smartcity123@db:5432/smartcitydb
+      REDIS_URL:     redis://redis:6379/0
+      # Print all SQL queries in dev
+      SQLALCHEMY_ECHO: "true"
+
+  # pgAdmin — visual PostgreSQL browser
+  # Login: admin@smartcity.ai / admin
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: smart_city_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL:    admin@smartcity.ai
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_LISTEN_PORT:      5050
+    ports:
+      - "5050:5050"
+    depends_on:
+      - db
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - smartcity
+
+volumes:
+  pgadmin_data:

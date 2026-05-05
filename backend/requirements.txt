@@ -1,0 +1,55 @@
+# ── Web framework ─────────────────────
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+
+# ── Database ──────────────────────────
+sqlalchemy==2.0.30
+alembic==1.13.1
+psycopg2-binary==2.9.9
+geoalchemy2==0.15.1
+
+# ── Redis ─────────────────────────────
+redis==5.0.4
+
+# ── Simulation ────────────────────────
+faker==25.0.0
+numpy==1.26.4
+
+# ── NLP / ML ──────────────────────────
+torch==2.3.0
+transformers==4.41.1
+datasets==2.19.1
+scikit-learn==1.4.2
+pandas==2.2.2
+accelerate==0.30.0
+
+# ── Computer Vision ───────────────────
+ultralytics==8.2.18
+opencv-python-headless==4.9.0.80
+Pillow==10.3.0
+
+# ── Time-series ───────────────────────
+prophet==1.1.5
+plotly==5.22.0
+protobuf==3.20.3   # 🔥 critical
+
+# ── MLflow ────────────────────────────
+mlflow==2.13.0
+
+# ── Config ────────────────────────────
+python-dotenv==1.0.1
+pydantic-settings==2.2.1
+pydantic==2.7.1
+
+# ── Testing ───────────────────────────
+pytest==8.2.0
+pytest-asyncio==0.23.6
+httpx==0.27.0
+
+# ── Utilities ─────────────────────────
+rich==13.7.1
+loguru==0.7.2
+
+# ── Alerts ────────────────────────────
+python-telegram-bot==21.3
+websockets==12.0

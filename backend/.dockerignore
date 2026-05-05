@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Tests & coverage
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# MLflow runs (mounted as volume in production)
+mlruns/
+mlflow.db
+
+# Trained model files (mounted as volumes in production)
+app/nlp/models_store/
+app/cv/models_store/
+app/timeseries/models_store/
+
+# Training data (generated at runtime)
+app/nlp/data/*.csv
+
+# Git
+.git/
+.gitignore
+
+# Env files (secrets must never go in the image)
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Docs
+*.md
+docs/

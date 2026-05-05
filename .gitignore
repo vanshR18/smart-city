@@ -1,0 +1,41 @@
+# ── Secrets ───────────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+!backend/.env.example
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# ── Node ──────────────────────────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+
+# ── ML artifacts (large — use git-lfs or cloud storage instead) ──────────────
+backend/mlruns/
+backend/app/nlp/models_store/
+backend/app/cv/models_store/
+backend/app/timeseries/models_store/
+backend/app/nlp/data/*.csv
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+.docker/
+
+# ── Database backups ──────────────────────────────────────────────────────────
+backups/
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo

@@ -1,0 +1,165 @@
+version: "3.9"
+
+# =============================================================================
+# SmartCityAI — Full Stack Docker Compose
+# =============================================================================
+#
+# Services:
+#   db        PostgreSQL 15 + PostGIS 3.3   → port 5432
+#   redis     Redis 7                        → port 6379
+#   backend   FastAPI (Python 3.11)          → port 8000
+#   frontend  React + nginx                  → port 3000
+#   mlflow    MLflow tracking UI             → port 5000
+#
+# Quick start:
+#   cp backend/.env.example backend/.env   # fill in your Telegram token
+#   docker-compose up --build
+#
+# Dev only (no frontend/mlflow build):
+#   docker-compose up db redis
+#   cd backend && uvicorn main:app --reload
+#   cd frontend && npm run dev
+
+services:
+
+  # ── PostgreSQL + PostGIS ────────────────────────────────────────────────────
+  db:
+    image: postgis/postgis:15-3.3
+    container_name: smart_city_db
+    environment:
+      POSTGRES_USER:     smartcity
+      POSTGRES_PASSWORD: smartcity123
+      POSTGRES_DB:       smartcitydb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:     ["CMD-SHELL", "pg_isready -U smartcity -d smartcitydb"]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+    restart: unless-stopped
+    networks:
+      - smartcity
+
+  # ── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: smart_city_redis
+    command: redis-server --appendonly yes   # persist stream data to disk
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test:     ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+    restart: unless-stopped
+    networks:
+      - smartcity
+
+  # ── FastAPI Backend ─────────────────────────────────────────────────────────
+  backend:
+    build:
+      context:    ./backend
+      dockerfile: Dockerfile
+      # Cache bust: only rebuilds when requirements.txt changes
+      args:
+        BUILDKIT_INLINE_CACHE: "1"
+    container_name: smart_city_backend
+    image: smartcityai-backend:latest
+    environment:
+      # DB & Redis use Docker service names (not localhost)
+      DATABASE_URL:            postgresql://smartcity:smartcity123@db:5432/smartcitydb
+      REDIS_URL:               redis://redis:6379/0
+      APP_ENV:                 production
+      APP_NAME:                SmartCityAI
+      APP_VERSION:             "1.0.0"
+      SIMULATE_CITY:           Lucknow
+      SIMULATE_EVENTS_PER_BATCH: "20"
+      ALERT_RISK_THRESHOLD:    "55"
+      MLFLOW_TRACKING_URI:     http://mlflow:5000
+      RETRAIN_INTERVAL_HOURS:  "24"
+      # Telegram — inject from shell env or .env file at root
+      TELEGRAM_BOT_TOKEN:      ${TELEGRAM_BOT_TOKEN:-your_token_here}
+      TELEGRAM_CHAT_ID:        ${TELEGRAM_CHAT_ID:-your_chat_id_here}
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist trained models and MLflow runs across container restarts
+      - ./backend/mlruns:/app/mlruns
+      - model_nlp:/app/app/nlp/models_store
+      - model_cv:/app/app/cv/models_store
+      - model_ts:/app/app/timeseries/models_store
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mlflow:
+        condition: service_started
+    healthcheck:
+      test:         ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval:     30s
+      timeout:      10s
+      start_period: 25s
+      retries:      3
+    restart: unless-stopped
+    networks:
+      - smartcity
+
+  # ── React Frontend (nginx) ──────────────────────────────────────────────────
+  frontend:
+    build:
+      context:    ./frontend
+      dockerfile: Dockerfile
+    container_name: smart_city_frontend
+    image: smartcityai-frontend:latest
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - smartcity
+
+  # ── MLflow Tracking Server ──────────────────────────────────────────────────
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.13.0
+    container_name: smart_city_mlflow
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri /mlruns
+      --default-artifact-root /mlruns
+      --serve-artifacts
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend/mlruns:/mlruns
+    restart: unless-stopped
+    networks:
+      - smartcity
+    healthcheck:
+      test:     ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout:  10s
+      retries:  3
+
+# ── Named volumes ───────────────────────────────────────────────────────────
+volumes:
+  pgdata:      # PostgreSQL data
+  redisdata:   # Redis AOF persistence
+  model_nlp:   # NLP model weights
+  model_cv:    # CV model weights
+  model_ts:    # Time-series model files
+
+# ── Network ─────────────────────────────────────────────────────────────────
+networks:
+  smartcity:
+    driver: bridge
