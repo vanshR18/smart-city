@@ -34,19 +34,27 @@ jobs:
       - name: Install dependencies
         run: |
           cd backend
-          pip install --upgrade pip
-          pip uninstall tensorflow tensorflow-intel keras -y 2>/dev/null || true
-          pip install "protobuf>=4.25.0" --upgrade
+          python -m pip install --upgrade pip
+
+          # remove conflicts
+          pip uninstall tensorflow tensorflow-intel keras -y || true
+
+          # install protobuf first (needed for mlflow)
+          pip install "protobuf>=4.25.0"
+
+          # install all normal deps from PyPI
           pip install \
             fastapi "uvicorn[standard]" sqlalchemy alembic \
             psycopg2-binary geoalchemy2 redis faker numpy \
-            scikit-learn pandas mlflow \
-            pydantic pydantic-settings python-dotenv \
-            transformers==4.41.1 \
-            torch --index-url https://download.pytorch.org/whl/cpu \
-            rich loguru \
-            pytest pytest-asyncio httpx python-multipart
-            
+            scikit-learn pandas mlflow pydantic pydantic-settings \
+            python-dotenv transformers rich loguru \
+            pytest pytest-asyncio httpx
+
+          pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
+
+          #  install torch separately (CPU version for CI)
+          pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
+                  
       - name: Run unit tests
         env:
           # Fake DB URL — unit tests don't touch the real DB
