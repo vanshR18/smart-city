@@ -32,7 +32,7 @@ from app.config import get_settings
 
 settings = get_settings()
 
-# ── Throttle tracker ──────────────────────────────────────────────────────────
+# ── Throttle tracker 
 # area_name → last_sent_at
 _last_sent: dict[str, datetime] = {}
 HIGH_THROTTLE_MINUTES = 5
@@ -56,7 +56,7 @@ def _mark_sent(area_name: str):
     _last_sent[area_name] = datetime.utcnow()
 
 
-# ── Message formatting ────────────────────────────────────────────────────────
+# ── Message formatting 
 LEVEL_EMOJI = {
     "CRITICAL": "🔴",
     "HIGH":     "🟠",
@@ -128,7 +128,7 @@ def _format_message(event: dict) -> str:
     return msg
 
 
-# ── Sender ────────────────────────────────────────────────────────────────────
+# ── Sender 
 async def send_telegram_alert(event: dict) -> bool:
     """
     Sends a Telegram alert for an event if the risk level warrants it.

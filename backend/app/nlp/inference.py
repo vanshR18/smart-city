@@ -23,12 +23,12 @@ from transformers import DistilBertForSequenceClassification, DistilBertTokenize
 
 from app.nlp.dataset import LABEL2ID, ID2LABEL, NUM_LABELS, MAX_LENGTH, MODEL_CHECKPOINT
 
-# ── Paths ─────────────────────────────────────────────────────────────────────
+# ── Paths 
 MODELS_DIR  = Path(__file__).parent / "models_store"
 BEST_MODEL  = MODELS_DIR / "best_model"
 
 
-# ── Result dataclass ──────────────────────────────────────────────────────────
+# ── Result dataclass 
 @dataclass
 class NLPResult:
     """
@@ -46,7 +46,7 @@ class NLPResult:
     method:        str = "distilbert"  # "distilbert" or "rule_based"
 
 
-# ── Model cache ───────────────────────────────────────────────────────────────
+# ── Model cache 
 # Stored at module level — survives across FastAPI requests within one process
 _model:     Optional[DistilBertForSequenceClassification] = None
 _tokenizer: Optional[DistilBertTokenizerFast]             = None
@@ -102,7 +102,7 @@ def is_model_loaded() -> bool:
     return _model is not None
 
 
-# ── Rule-based fallback ───────────────────────────────────────────────────────
+# ── Rule-based fallback 
 # Used when model hasn't been trained yet.
 # Keyword matching — simple but interpretable.
 
@@ -146,7 +146,7 @@ def _rule_based_classify(text: str) -> NLPResult:
     )
 
 
-# ── Main inference function ───────────────────────────────────────────────────
+# ── Main inference function 
 def predict(text: str) -> NLPResult:
     """
     Classifies a single text and returns a structured NLPResult.

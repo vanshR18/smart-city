@@ -37,7 +37,7 @@ settings   = get_settings()
 _scheduler = None
 
 
-# ── Startup / shutdown ────────────────────────────────────────────────────────
+# ── Startup / shutdown 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI):
 
     # Creates PostGIS extension + all tables
     init_db()
-    logger.info("✅ DB ready")
+    logger.info(" DB ready")
 
     # Seed hotspot data
     db = next(get_db())
@@ -76,7 +76,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Retraining scheduler not started: {e}")
 
-    logger.success("🚀 SmartCityAI — all systems running")
+    logger.success(" SmartCityAI — all systems running")
     yield
 
     consumer_task.cancel()
@@ -89,7 +89,7 @@ async def lifespan(app: FastAPI):
     logger.info("Shutdown complete")
 
 
-# ── App ───────────────────────────────────────────────────────────────────────
+# ── App 
 
 app = FastAPI(
     title="SmartCityAI API",
@@ -118,7 +118,7 @@ app.include_router(alerts_router)
 app.include_router(mlops_router)
 
 
-# ── Hotspot cache ─────────────────────────────────────────────────────────────
+# ── Hotspot cache 
 
 def _load_hotspot_cache(db: Session):
     """Load hotspot risk scores into Risk Engine memory."""
@@ -133,7 +133,7 @@ def _load_hotspot_cache(db: Session):
         logger.warning(f"Hotspot cache load failed: {e}")
 
 
-# ── Core routes ───────────────────────────────────────────────────────────────
+# ── Core routes 
 
 @app.get("/")
 def root():

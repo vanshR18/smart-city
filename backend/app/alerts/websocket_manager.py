@@ -85,6 +85,6 @@ class ConnectionManager:
         return len(self.active)
 
 
-# ── Module-level singleton ────────────────────────────────────────────────────
+# ── Module-level singleton 
 # Import this everywhere: from app.alerts.websocket_manager import ws_manager
 ws_manager = ConnectionManager()

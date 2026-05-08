@@ -21,7 +21,7 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 
 
-# ── Enumerations ──────────────────────────────────────────────────────────────
+# ── Enumerations 
 
 class IncidentType(str, enum.Enum):
     ACCIDENT   = "ACCIDENT"
@@ -54,7 +54,7 @@ class AlertStatus(str, enum.Enum):
     FAILED   = "FAILED"
 
 
-# ── Table 1: Incidents ────────────────────────────────────────────────────────
+# ── Table 1: Incidents 
 
 class Incident(Base):
     """
@@ -91,7 +91,7 @@ class Incident(Base):
         return f"<Incident id={self.id} type={self.incident_type} area={self.area_name}>"
 
 
-# ── Table 2: Predictions ──────────────────────────────────────────────────────
+# ── Table 2: Predictions 
 
 class Prediction(Base):
     """
@@ -130,7 +130,7 @@ class Prediction(Base):
         return f"<Prediction incident={self.incident_id} score={self.risk_score} level={self.risk_level}>"
 
 
-# ── Table 3: Alerts ───────────────────────────────────────────────────────────
+# ── Table 3: Alerts 
 
 class Alert(Base):
     """
@@ -156,7 +156,7 @@ class Alert(Base):
         return f"<Alert incident={self.incident_id} channel={self.channel} status={self.status}>"
 
 
-# ── Table 4: Hotspots ─────────────────────────────────────────────────────────
+# ── Table 4: Hotspots 
 
 class Hotspot(Base):
     """

@@ -19,7 +19,7 @@ from pathlib import Path
 from loguru import logger
 from typing import Optional
 
-# ── Constants ─────────────────────────────────────────────────────────────────
+# ── Constants 
 MODEL_CHECKPOINT = "distilbert-base-uncased"   # 66M params, 2x faster than BERT-base
 MAX_LENGTH       = 128    # emergency texts are short; 128 tokens is enough
 DATA_DIR         = Path(__file__).parent / "data"
@@ -37,7 +37,7 @@ ID2LABEL    = {v: k for k, v in LABEL2ID.items()}
 NUM_LABELS  = len(LABEL2ID)
 
 
-# ── Tokenizer singleton ───────────────────────────────────────────────────────
+# ── Tokenizer singleton 
 # Load once and reuse — tokenizer init is slow (reads vocab from HuggingFace)
 _tokenizer: Optional[DistilBertTokenizerFast] = None
 
@@ -49,7 +49,7 @@ def get_tokenizer() -> DistilBertTokenizerFast:
     return _tokenizer
 
 
-# ── Dataset class ─────────────────────────────────────────────────────────────
+# ── Dataset class 
 class EmergencyDataset(Dataset):
     """
     PyTorch Dataset wrapping a pandas DataFrame of (text, label) pairs.
@@ -84,7 +84,7 @@ class EmergencyDataset(Dataset):
         }
 
 
-# ── Loaders ───────────────────────────────────────────────────────────────────
+# ── Loaders 
 def load_datasets() -> tuple["EmergencyDataset", "EmergencyDataset", "EmergencyDataset"]:
     """
     Loads train/val/test CSVs → three EmergencyDataset objects.

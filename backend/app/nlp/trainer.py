@@ -54,12 +54,12 @@ from app.nlp.dataset import (
 
 console = Console()
 
-# ── Paths ─────────────────────────────────────────────────────────────────────
+# ── Paths 
 MODELS_DIR   = Path(__file__).parent / "models_store"
 MLFLOW_DIR   = Path(__file__).parent.parent.parent / "mlruns"
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
-# ── Default hyperparameters ───────────────────────────────────────────────────
+# ── Default hyperparameters 
 DEFAULT_CONFIG = {
     "model_checkpoint":  MODEL_CHECKPOINT,
     "num_labels":        NUM_LABELS,
@@ -75,7 +75,7 @@ DEFAULT_CONFIG = {
 }
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# ── Helpers 
 def set_seed(seed: int):
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -151,7 +151,7 @@ def evaluate(model, dataloader, device) -> dict:
     }
 
 
-# ── Main training function ────────────────────────────────────────────────────
+# ── Main training function 
 def train(config: dict = None) -> str:
     """
     Fine-tunes DistilBERT and logs everything to MLflow.
@@ -166,7 +166,7 @@ def train(config: dict = None) -> str:
     set_seed(cfg["seed"])
     device = get_device()
 
-    # ── MLflow setup ──────────────────────────────────────────────────────────
+    # ── MLflow setup 
     mlflow.set_tracking_uri(f"file://{MLFLOW_DIR}")
     mlflow.set_experiment("emergency-nlp-classifier")
 
@@ -177,7 +177,7 @@ def train(config: dict = None) -> str:
         # Log every hyperparameter
         mlflow.log_params(cfg)
 
-        # ── Data ──────────────────────────────────────────────────────────────
+        # ── Data 
         logger.info("Loading datasets...")
         train_ds, val_ds, test_ds = load_datasets()
         collator = get_data_collator()
@@ -195,7 +195,7 @@ def train(config: dict = None) -> str:
             shuffle=False, collate_fn=collator, num_workers=0,
         )
 
-        # ── Model ─────────────────────────────────────────────────────────────
+        # ── Model 
         logger.info(f"Loading model: {cfg['model_checkpoint']}")
         model = DistilBertForSequenceClassification.from_pretrained(
             cfg["model_checkpoint"],
@@ -206,7 +206,7 @@ def train(config: dict = None) -> str:
         freeze_layers(model, cfg["freeze_layers"])
         model.to(device)
 
-        # ── Optimizer + scheduler ─────────────────────────────────────────────
+        # ── Optimizer + scheduler 
         # AdamW with weight decay on all params except biases and LayerNorm
         no_decay = ["bias", "LayerNorm.weight"]
         optimizer_groups = [
@@ -230,7 +230,7 @@ def train(config: dict = None) -> str:
         mlflow.log_params({"total_steps": total_steps, "warmup_steps": warmup_steps})
         logger.info(f"Training: {total_steps} steps | {warmup_steps} warmup steps")
 
-        # ── Training loop ─────────────────────────────────────────────────────
+        # ── Training loop 
         best_val_f1     = 0.0
         best_model_path = MODELS_DIR / "best_model"
 
@@ -271,7 +271,7 @@ def train(config: dict = None) -> str:
                         style="dim",
                     )
 
-            # ── Validation ────────────────────────────────────────────────────
+            # ── Validation 
             avg_train_loss = train_loss / len(train_loader)
             val_metrics    = evaluate(model, val_loader, device)
             epoch_time     = time.time() - epoch_start
@@ -303,7 +303,7 @@ def train(config: dict = None) -> str:
                 logger.success(f"New best model saved (F1={best_val_f1:.4f})")
                 mlflow.log_metric("best_val_f1", best_val_f1, step=epoch)
 
-        # ── Final test evaluation ─────────────────────────────────────────────
+        # ── Final test evaluation 
         logger.info("Running final evaluation on test set...")
         best_model = DistilBertForSequenceClassification.from_pretrained(best_model_path)
         best_model.to(device)
@@ -333,7 +333,7 @@ def train(config: dict = None) -> str:
         config_path.write_text(json.dumps(cfg, indent=2))
         mlflow.log_artifact(str(config_path))
 
-        # ── Register model in MLflow Model Registry ───────────────────────────
+        # ── Register model in MLflow Model Registry 
         model_uri = f"runs:/{run_id}/model"
         mlflow.pytorch.log_model(
             best_model,

@@ -37,7 +37,7 @@ from typing import Optional, Union
 from dataclasses import dataclass, field
 from loguru import logger
 
-# ── lazy imports — only load when model is actually used ──────────────────────
+# ── lazy imports — only load when model is actually used 
 _ultralytics_available = False
 _cv2_available         = False
 
@@ -59,12 +59,12 @@ try:
 except ImportError:
     _pil_available = False
 
-# ── Paths ─────────────────────────────────────────────────────────────────────
+# ── Paths 
 CV_DIR     = Path(__file__).parent
 MODELS_DIR = CV_DIR / "models_store"
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
-# ── COCO class → Emergency type mapping ───────────────────────────────────────
+# ── COCO class → Emergency type mapping 
 # YOLOv8 pretrained on COCO detects 80 classes.
 # We map relevant ones to our 7 emergency categories.
 # Unmapped classes → NORMAL (background / no emergency).
@@ -108,7 +108,7 @@ FINE_TUNED_CLASSES = {
 }
 
 
-# ── Result dataclass ──────────────────────────────────────────────────────────
+# ── Result dataclass 
 @dataclass
 class Detection:
     """Single object detected in an image."""
@@ -136,7 +136,7 @@ class CVResult:
     explanation:    dict = field(default_factory=dict)
 
 
-# ── Model cache ───────────────────────────────────────────────────────────────
+# ── Model cache 
 _detect_model:  Optional["YOLO"] = None
 _loaded_path:   str = ""
 
@@ -172,7 +172,7 @@ def _load_yolo(model_name: str = "yolov8n.pt") -> Optional["YOLO"]:
         return None
 
 
-# ── Core detection logic ──────────────────────────────────────────────────────
+# ── Core detection logic 
 def _map_detections_to_emergency(raw_detections: list) -> tuple[str, float, list[Detection]]:
     """
     Converts raw YOLO detections to our emergency schema.
@@ -240,7 +240,7 @@ def _map_detections_to_emergency(raw_detections: list) -> tuple[str, float, list
     return "NORMAL", 0.10, detections
 
 
-# ── Simulation fallback ───────────────────────────────────────────────────────
+# ── Simulation fallback 
 # Used when ultralytics is not installed or model fails to load.
 # Produces realistic-looking CV results for pipeline testing.
 
@@ -293,7 +293,7 @@ def _simulate_cv_result(filename: str = "") -> CVResult:
     )
 
 
-# ── Public API ────────────────────────────────────────────────────────────────
+# ── Public API 
 def detect_image(
     image_input: Union[str, bytes, "np.ndarray"],
     confidence_threshold: float = 0.25,
@@ -462,7 +462,7 @@ def detect_video_frames(
     )
 
 
-# ── Fine-tuning code (run with GPU) ──────────────────────────────────────────
+# ── Fine-tuning code (run with GPU) 
 FINETUNE_YAML = """
 # dataset.yaml — for YOLOv8 fine-tuning on emergency detection
 # 

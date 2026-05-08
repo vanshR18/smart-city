@@ -38,7 +38,7 @@ from typing import Optional
 import mlflow
 import pandas as pd
 
-# ── Paths ─────────────────────────────────────────────────────────────────────
+# ── Paths 
 BACKEND_DIR  = Path(__file__).parent.parent.parent   # backend/
 MLOPS_DIR    = Path(__file__).parent
 MODELS_DIR   = BACKEND_DIR / "app" / "nlp" / "models_store"
@@ -47,7 +47,7 @@ BACKUP_MODEL = MODELS_DIR / "previous_model"
 METRICS_FILE = MODELS_DIR / "latest_metrics.json"
 MLFLOW_DIR   = BACKEND_DIR / "mlruns"
 
-# ── Config ────────────────────────────────────────────────────────────────────
+# ── Config 
 MIN_F1_IMPROVEMENT   = 0.01    # new model must beat current by at least 1%
 MIN_TRAIN_SAMPLES    = 100     # don't retrain if dataset is too small
 RECENT_DAYS_WINDOW   = 30      # pull events from last N days
@@ -262,11 +262,11 @@ def run_retraining_pipeline(
     }
 
     try:
-        # ── 1. Get current model baseline ─────────────────────────────────────
+        # ── 1. Get current model baseline 
         current_f1 = get_current_model_f1()
         result["current_f1"] = current_f1
 
-        # ── 2. Fetch recent data ───────────────────────────────────────────────
+        # ── 2. Fetch recent data 
         db_events = fetch_recent_events_from_db()
         df        = build_retrain_dataset(db_events)
 
@@ -275,10 +275,10 @@ def run_retraining_pipeline(
             result["reason"] = f"Insufficient data (<{MIN_TRAIN_SAMPLES} samples)"
             return result
 
-        # ── 3. Save dataset splits ─────────────────────────────────────────────
+        # ── 3. Save dataset splits 
         save_dataset_splits(df)
 
-        # ── 4. Train new model ─────────────────────────────────────────────────
+        # ── 4. Train new model 
         logger.info("Training new model...")
         backup_current_model()
 
@@ -291,7 +291,7 @@ def run_retraining_pipeline(
         })
         result["run_id"] = run_id
 
-        # ── 5. Read new model metrics ──────────────────────────────────────────
+        # ── 5. Read new model metrics 
         new_metrics = json.loads(METRICS_FILE.read_text()) if METRICS_FILE.exists() else {}
         new_f1      = new_metrics.get("test_f1_macro")
 
@@ -300,7 +300,7 @@ def run_retraining_pipeline(
 
         result["new_f1"] = float(new_f1)
 
-        # ── 6. Compare and decide ──────────────────────────────────────────────
+        # ── 6. Compare and decide 
         if current_f1 is None:
             # No existing model — always promote
             promote  = True
@@ -336,7 +336,7 @@ def run_retraining_pipeline(
             restore_backup_model()
             result["status"] = "rejected"
 
-        # ── 7. Log promotion decision to MLflow ────────────────────────────────
+        # ── 7. Log promotion decision to MLflow 
         mlflow.set_tracking_uri(f"file://{MLFLOW_DIR}")
         mlflow.set_experiment("emergency-nlp-classifier")
 
@@ -376,7 +376,7 @@ def run_retraining_pipeline(
     return result
 
 
-# ── APScheduler setup (used in main.py lifespan) ──────────────────────────────
+# ── APScheduler setup (used in main.py lifespan) 
 def start_retraining_scheduler(interval_hours: int = 24):
     """
     Starts a background APScheduler that calls run_retraining_pipeline()

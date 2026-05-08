@@ -32,7 +32,7 @@ from app.alerts.telegram_bot import send_telegram_alert
 
 settings = get_settings()
 
-# ── Alert stats (in-memory, reset on restart) ─────────────────────────────────
+# ── Alert stats (in-memory, reset on restart)
 _stats = {
     "events_processed":  0,
     "alerts_sent":       0,
@@ -42,7 +42,7 @@ _stats = {
 }
 
 
-# ── Core event processor ──────────────────────────────────────────────────────
+# ── Core event processor 
 async def process_event(event: dict, db=None) -> dict:
     """
     Central processing function for every new event.
@@ -69,7 +69,7 @@ async def process_event(event: dict, db=None) -> dict:
         "threshold":  threshold,
     }
 
-    # ── 1. Always broadcast to WebSocket dashboard ────────────────────────────
+    # ── 1. Always broadcast to WebSocket dashboard 
     # Build a clean, small payload (don't send the full event — dashboard
     # only needs what it renders on the map)
     ws_payload = _build_ws_payload(event)
@@ -77,18 +77,18 @@ async def process_event(event: dict, db=None) -> dict:
     actions["ws_sent"] = True
     _stats["ws_broadcasts"] += 1
 
-    # ── 2. Check threshold for alert ─────────────────────────────────────────
+    # ── 2. Check threshold for alert 
     if risk_score >= threshold:
         _stats["alerts_sent"] += 1
         actions["alert_triggered"] = True
 
-        # ── 3. Send Telegram ─────────────────────────────────────────────────
+        # ── 3. Send Telegram
         telegram_sent = await send_telegram_alert(event)
         actions["telegram"] = telegram_sent
         if telegram_sent:
             _stats["telegram_sent"] += 1
 
-        # ── 4. Mark alert_sent in DB ──────────────────────────────────────────
+        # ── 4. Mark alert_sent in DB 
         if db:
             _mark_alert_sent_in_db(db, event.get("id"))
 
@@ -142,7 +142,7 @@ def _mark_alert_sent_in_db(db, event_id: str):
         logger.error(f"Failed to mark alert_sent in DB: {e}")
 
 
-# ── Redis stream consumer ─────────────────────────────────────────────────────
+# ── Redis stream consumer 
 async def redis_stream_consumer(redis_url: str):
     """
     Background asyncio task that reads from the Redis stream
@@ -222,7 +222,7 @@ def _parse_stream_message(msg_data: dict) -> dict:
     return event
 
 
-# ── Stats endpoint helper ─────────────────────────────────────────────────────
+# ── Stats endpoint helper 
 def get_alert_stats() -> dict:
     return {
         **_stats,
