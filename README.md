@@ -74,7 +74,7 @@ A production-grade system that:
 ### 1. Clone and configure
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/smart-city.git
+git clone https://github.com/vanshR18/smart-city.git
 cd smart-city
 
 # Configure secrets
@@ -278,7 +278,7 @@ railway variables set DATABASE_URL=...
 
 ```bash
 # On your server
-git clone https://github.com/YOUR_USERNAME/smart-city.git
+git clone https://github.com/vanshR18/smart-city.git
 cd smart-city
 cp .env.example .env      # fill in secrets
 cp backend/.env.example backend/.env
