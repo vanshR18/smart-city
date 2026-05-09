@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from loguru import logger
 from app.config import get_settings
@@ -57,7 +57,6 @@ def init_db():
     """
     with engine.connect() as conn:
         # PostGIS must be enabled before any geometry columns are created
-        conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis;"))
         conn.commit()
         logger.info("PostGIS extension enabled.")
 

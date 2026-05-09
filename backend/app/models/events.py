@@ -11,7 +11,6 @@ Tables:
 import enum
 from datetime import datetime
 
-from geoalchemy2 import Geometry
 from sqlalchemy import (
     BigInteger, Boolean, Column, DateTime, Enum,
     Float, ForeignKey, Integer, String, Text,
@@ -74,7 +73,6 @@ class Incident(Base):
     raw_data      = Column(Text, nullable=True)          # original JSON payload as string
 
     # Geography — PostGIS Point(longitude, latitude), SRID 4326 = standard GPS
-    location      = Column(Geometry("POINT", srid=4326), nullable=False)
     latitude      = Column(Float, nullable=False)        # stored plain too for easy queries
     longitude     = Column(Float, nullable=False)
     area_name     = Column(String(200), nullable=True)   # e.g. "Hazratganj, Lucknow"
