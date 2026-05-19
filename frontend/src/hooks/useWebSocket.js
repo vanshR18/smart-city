@@ -10,7 +10,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 
-const WS_URL            = 'ws://localhost:8000/ws/live'
+const WS_URL = 'wss://smart-city-production-e02c.up.railway.app/ws/live'
 const RECONNECT_DELAY   = 3000   // ms before reconnect attempt
 const MAX_RECONNECTS    = 10
 

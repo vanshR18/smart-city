@@ -103,8 +103,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:5173",
-        "https://project-pvmz7.vercel.app",
-        "https://smartcity-570iscb4u-rohit-pal-s-projects1.vercel.app",
+        "https://smartcity-fsrnmgvsr-rohit-pal-s-projects1.vercel.app",
+        "https://*.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
